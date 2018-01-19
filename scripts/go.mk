@@ -9,8 +9,8 @@ GOPATH?=~/go
 
 EXTGOTOOLS=github.com/golang/protobuf/protoc-gen-go/...
 
-godep-save: symlink
+godep-save:
 	cd $(ROOT_PKG_DIR) && godep save $$(scripts/gopkgs) $(EXTGOTOOLS)
 
-godep-restore: symlink
+godep-restore:
 	cd $(ROOT_PKG_DIR) && godep restore $$(scripts/gopkgs)

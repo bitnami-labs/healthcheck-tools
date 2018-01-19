@@ -1,21 +1,17 @@
 language: go
 go:
-  - 1.9
+  - 1.7
+  - 1.8
 
 os:
   - linux
   - osx
 
 install:
-  - go get github.com/tools/godep
-  - go get -u github.com/golang/lint/golint
-  - cd $TOOL
+  - make get-build-deps
   - make godep-save
-
-env:
-  - TOOL=ssl-checker
 
 script:
   - make lint
-  - make test
   - make build
+  - make test

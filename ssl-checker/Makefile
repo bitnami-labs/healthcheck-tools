@@ -1,18 +1,20 @@
+TOOL=ssl-checker
+
 all: build
 
 include ../scripts/go.mk
 
-build: symlink
-	cd $(ROOT_PKG_DIR)/ssl-checker && go build -i
+build:
+	cd $(ROOT_PKG_DIR)/$(TOOL) && go build -i
 
 test: build
-	cd $(ROOT_PKG_DIR)/ssl-checker && go test ./...
+	cd $(ROOT_PKG_DIR)/$(TOOL) && go test ./...
 
 generate:
-	cd $(ROOT_PKG_DIR)/ssl-checker && go generate ./...
+	cd $(ROOT_PKG_DIR)/$(TOOL) && go generate ./...
 
 clean:
-	cd $(ROOT_PKG_DIR)/ssl-checker && go clean ./...
+	cd $(ROOT_PKG_DIR)/$(TOOL) && go clean ./...
 
 lint:
 	golint

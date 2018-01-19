@@ -9,12 +9,6 @@ GOPATH?=~/go
 
 EXTGOTOOLS=github.com/golang/protobuf/protoc-gen-go/...
 
-symlink:
-	@if [ ! -e $(ROOT_PKG_DIR) ]; \
-		then mkdir -p $$(dirname $(ROOT_PKG_DIR)); \
-		ln -s $$(realpath $(SELF_DIR)/..) $(ROOT_PKG_DIR); \
-	fi
-
 godep-save: symlink
 	cd $(ROOT_PKG_DIR) && godep save $$(scripts/gopkgs) $(EXTGOTOOLS)
 

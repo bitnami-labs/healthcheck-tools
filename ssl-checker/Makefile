@@ -15,5 +15,5 @@ clean:
 	cd $(ROOT_PKG_DIR)/ssl-checker && go clean ./...
 
 lint:
-	go lint
+	golint
 	go vet

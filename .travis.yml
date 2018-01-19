@@ -7,7 +7,7 @@ os:
   - osx
 
 install:
-  - go get godep
+  - go get github.com/tools/godep
   - cd $TOOL
   - make godep-save
 

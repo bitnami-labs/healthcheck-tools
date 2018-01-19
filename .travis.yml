@@ -6,12 +6,14 @@ os:
   - linux
   - osx
 
-install: cd $TOOL; make godep-save; cd ..
+install:
+  - cd $TOOL
+  - make godep-save
 
 env:
   - TOOL=ssl-check
 
 script:
-  - cd $TOOL; make lint; cd ..
-  - cd $TOOL; make test; cd ..
-  - cd $TOOL; make build; cd ..
+  - make lint
+  - make test
+  - make build

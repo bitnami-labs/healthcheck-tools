@@ -4,13 +4,15 @@ go:
 
 os:
   - linux
-  - osx
-  - windows
 
-install: make get-deps
+install: cd $(TOOL); make godep-save; cd ..
+
+env:
+  - GOOS=linux
+  - GOOS=windows
+  - TOOL=ssl-check
 
 script:
-  - make vet
-  - make lint
-  - make test
-  - make build
+  - cd $(TOOL); make lint; cd ..
+  - cd $(TOOL); make test; cd ..
+  - cd $(TOOL); make build; cd ..

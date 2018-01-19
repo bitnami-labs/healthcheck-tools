@@ -11,7 +11,7 @@ install:
   - make godep-save
 
 env:
-  - TOOL=ssl-check
+  - TOOL=ssl-checker
 
 script:
   - make lint

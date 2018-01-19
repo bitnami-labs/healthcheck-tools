@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+GOPATH=$(go env GOPATH)
+cd ${GOPATH}/src/github.com/bitnami-labs/healthcheck-tools
+go list ./... | grep -v /vendor/

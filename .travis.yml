@@ -4,15 +4,14 @@ go:
 
 os:
   - linux
+  - osx
 
-install: cd $(TOOL); make godep-save; cd ..
+install: cd $TOOL; make godep-save; cd ..
 
 env:
-  - GOOS=linux
-  - GOOS=windows
   - TOOL=ssl-check
 
 script:
-  - cd $(TOOL); make lint; cd ..
-  - cd $(TOOL); make test; cd ..
-  - cd $(TOOL); make build; cd ..
+  - cd $TOOL; make lint; cd ..
+  - cd $TOOL; make test; cd ..
+  - cd $TOOL; make build; cd ..

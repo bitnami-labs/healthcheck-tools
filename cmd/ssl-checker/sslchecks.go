@@ -12,7 +12,15 @@ import (
 	"github.com/bitnami-labs/healthcheck-tools/pkg/apache"
 )
 
-func getActiveSSLCertsPath(apacheConf map[string]string, apacheRoot string) (res [][]string){
+// ActiveCertKeyPath contains paths of an active certificate-key path
+type ActiveCertKeyPath struct {
+	apacheConfPath string
+	certPath string
+	keyPath string
+}
+
+// getActivesslcertspath obtains the certificate-key pairs that are being used in each Apache configuration file
+func getActiveSSLCertsPath(apacheConf map[string]string, apacheRoot string) (res []ActiveCertKeyPath){
 	for file, content := range apacheConf {
 		sslcertRe, err := regexp.CompilePOSIX("^[[:space:]]*SSLCertificateFile [\"]?([^\n\"]+)[\"]?")
 		if err != nil {
@@ -38,49 +46,49 @@ func getActiveSSLCertsPath(apacheConf map[string]string, apacheRoot string) (res
 					newKey = path.Join(apacheRoot, newKey)
 				}
 			}
-			res = append(res, []string{file, newCert, newKey})
+			res = append(res, ActiveCertKeyPath{file, newCert, newKey})
 		}
 	}
 	return res
 }
 
-type checkIncludedSSLCertsResult struct {
-	apacheFile string
-	certFile string
-	keyFile string
-}
-
-func checkIncludedSSLCertsInApache(sslCertPaths [][]string) (res []checkIncludedSSLCertsResult){
+// showActiveSSLCertsPath prints on screen the certificate-key pairs that are used in each Apache configuration file
+func showActiveSSLCertsPath(certKeyPairs []ActiveCertKeyPath) {
 	fmt.Println("\n--- Check: Included SSL Certificates in Apache ---")
-	for index, element := range sslCertPaths {
-		fmt.Print("Ocurrence #")
-		fmt.Println(index + 1)
-		fmt.Println("  - Apache file: " + element[0])
-		fmt.Println("  - Certificate file: " + element[1])
-		fmt.Println("  - Key file: " + element[2])
-		res = append(res, checkIncludedSSLCertsResult{element[0], element[1], element[2]})
+	for index, keyPair := range certKeyPairs {
+		fmt.Println("  Ocurrence #", index + 1)
+		fmt.Println("  - Apache file: " + keyPair.apacheConfPath)
+		fmt.Println("  - Certificate file: " + keyPair.certPath)
+		fmt.Println("  - Key file: " + keyPair.keyPath)
 	}
 	return
 }
 
-type checkSSLCertificateResult struct {
-	certFile string
-	certExists bool
+// SSLCertInfo contains the following information about an active certificate
+//     - Path to the certificate
+//     - If the certificate can be opened
+//     - If the certificate can be decoded
+//     - The certificate domain name that uses
+type SSLCertInfo struct {
+	certPath string
+	certOpened bool
     certDecoded bool
 	certDomain string
 }
 
-func checkSSLCertificate(sslCertPaths [][]string) (res []checkSSLCertificateResult) {
- 	fmt.Println("\n--- Check: Decode SSL Certificate ---")
-	for index, element := range sslCertPaths {
-		fmt.Print("Ocurrence #")
-		fmt.Println(index + 1)
-		cert, err := ioutil.ReadFile(element[1])
-		certExists := false
+// getSSLCertsInfo returns some the following information from the active certificate files
+//     - Path to the certificate
+//     - If the certificate can be opened
+//     - If the certificate can be decoded
+//     - The certificate domain name that uses
+func getSSLCertsInfo(certKeyPairs []ActiveCertKeyPath) (res []SSLCertInfo) {
+	for _, keyPair := range certKeyPairs {
+		certOpened := false
 		certDecoded := false
 		certDomain := "Could not decode certificate"
+		cert, err := ioutil.ReadFile(keyPair.certPath)
 		if err == nil {
-			certExists = true
+			certOpened = true
 			block, _ := pem.Decode(cert)
 			parsedCert, err := x509.ParseCertificate(block.Bytes)
 			if err == nil {
@@ -92,50 +100,119 @@ func checkSSLCertificate(sslCertPaths [][]string) (res []checkSSLCertificateResu
 		 } else {
 			 log.Println(err)
 		 }
-
-		fmt.Println("  - Certificate file: " + element[1])
-		fmt.Println("  - Certificate can be opened: ", certExists)
-		fmt.Println("  - Certificate file can be decoded: ", certDecoded)
-		fmt.Println("  - Domain name: " + certDomain)
-		res = append(res, checkSSLCertificateResult{element[1], certExists, certDecoded, certDomain})
+		res = append(res, SSLCertInfo{keyPair.certPath, certOpened, certDecoded, certDomain})
 	}
 	return
 }
 
-type checkSSLMatchResult struct {
-	certFile string
-	keyFile string
+// showSSLCertsInfo prints on screen the following information from the active certificate files
+//     - Path to the certificate
+//     - If the certificate can be opened
+//     - If the certificate can be decoded
+//     - The certificate domain name that uses
+func showSSLCertsInfo(certsInfo []SSLCertInfo) {
+ 	fmt.Println("\n--- Check: Decode SSL Certificate ---")
+	for index, certInfo := range certsInfo {
+		fmt.Println("  Ocurrence #", index + 1)
+		fmt.Println("  - Certificate file: " + certInfo.certPath)
+		fmt.Println("  - Certificate can be opened: ", certInfo.certOpened)
+		fmt.Println("  - Certificate file can be decoded: ", certInfo.certDecoded)
+		fmt.Println("  - Domain name: ", certInfo.certDomain)
+	}
+}
+
+// CertKeyMatchInfo contains information about a certificate-key pair and whether they match or not
+type CertKeyMatchInfo struct {
+	certPath string
+	keyPath string
 	match bool
 }
 
-func checkSSLMatch(sslCertPaths [][]string) (res []checkSSLMatchResult) {
- 	fmt.Println("\n--- Check: Certificate and Key match ---")
-	for index, element := range sslCertPaths {
-		fmt.Print("Ocurrence #")
-		fmt.Println(index + 1)
-
+// getCertKeyMatchInfo returns, for each active certificate-key pair, whether they match or not
+func getCertKeyMatchInfo(certKeyPairs []ActiveCertKeyPath) (res []CertKeyMatchInfo) {
+	for _, keyPair := range certKeyPairs {
 		match := true
-		_ , err := tls.LoadX509KeyPair(element[1], element[2])
+		_ , err := tls.LoadX509KeyPair(keyPair.certPath, keyPair.keyPath)
 		if err != nil {
 			match = false
 			log.Println(err)
 		}
-		fmt.Println("  - Certificate file: " + element[1])
-		fmt.Println("  - Certificate key: " + element[2])
-		fmt.Println("  - Certificate and Key match: ", match)
-		res = append(res, checkSSLMatchResult{element[1], element[2], match})
+		res = append(res, CertKeyMatchInfo{keyPair.certPath, keyPair.keyPath, match})
 	}
 	return
 }
 
-func RunChecks(confFile, apacheRoot string) {
+// showCertKeyMatchInfo shows, for each active certificate-key pair, whether they match or not
+func showCertKeyMatchInfo(certKeyMatches []CertKeyMatchInfo) {
+ 	fmt.Println("\n--- Check: Certificate and Key match ---")
+	for index, certKeyMatchInfo := range certKeyMatches {
+		fmt.Println("  Ocurrence #", index + 1)
+		fmt.Println("  - Certificate file: " + certKeyMatchInfo.certPath)
+		fmt.Println("  - Key file: ", certKeyMatchInfo.keyPath)
+		fmt.Println("  - Certificate and key match: ", certKeyMatchInfo.match)
+	}
+}
+
+// HTTPSConnectionInfo contains information about the HTTPS connection attempt to the server
+//     - Hostname and port
+//     - Whether the connection was successful or not
+//     - The domain name of the server certificate
+type HTTPSConnectionInfo struct {
+	hostname string
+	port string
+	canConnect bool
+	serverCertDomain string
+}
+
+// getHTTPSConnectionInfo attempts a HTTPS connection to the server and returns the following information
+//     - Hostname and port
+//     - Whether the connection was successful or not
+//     - The domain name of the server certificate
+func getHTTPSConnectionInfo(hostname string, port string) (res HTTPSConnectionInfo){
+	conf := &tls.Config{
+		InsecureSkipVerify: true,
+    }
+
+	res.hostname = hostname
+	res.port = port
+	res.canConnect = true
+	res.serverCertDomain = "Could not obtain certificate"
+
+    conn, err := tls.Dial("tcp", hostname + ":" + port, conf)
+    if err != nil {
+		res.canConnect = false
+        log.Println(err)
+        return
+    }
+
+	conn.Handshake()
+	res.serverCertDomain = conn.ConnectionState().PeerCertificates[0].Subject.CommonName
+
+	return
+}
+
+// getHTTPSConnectionInfo prints the results of the HTTPS connection attempt to the server
+//     - Hostname and port
+//     - Whether the connection was successful or not
+//     - The domain name of the server certificate
+func showHTTPSConnectionInfo(info HTTPSConnectionInfo) {
+ 	fmt.Println("\n--- Check: HTTPS Connection with server ---")
+	fmt.Println("  - Hostname: ", info.hostname)
+	fmt.Println("  - Port: ", info.port)
+	fmt.Println("  - Can connect: ", info.canConnect)
+	fmt.Println("  - Server certificate domain: ", info.serverCertDomain)
+}
+
+// RunChecks executes the health check suite and prints the results on screen
+func RunChecks(confFile, apacheRoot, hostname, port string) {
 	apacheConf := apache.OpenAllApacheConfigurationFiles(confFile, apacheRoot)
 	sslCertPaths := getActiveSSLCertsPath(apacheConf, apacheRoot)
 	if len(sslCertPaths) == 0 {
 		fmt.Println("No SSL certificates found in the Apache configuration")
 	} else {
-		checkIncludedSSLCertsInApache(sslCertPaths)
-		checkSSLCertificate(sslCertPaths)
-		checkSSLMatch(sslCertPaths)
+	    showActiveSSLCertsPath(sslCertPaths)
+		showSSLCertsInfo(getSSLCertsInfo(sslCertPaths))
+		showCertKeyMatchInfo(getCertKeyMatchInfo(sslCertPaths))
+		showHTTPSConnectionInfo(getHTTPSConnectionInfo(hostname, port))
 	}
 }

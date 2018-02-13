@@ -1,3 +1,4 @@
+// Package apache provides functions for reading the Apache configuration files
 package apache
 
 import (
@@ -9,6 +10,7 @@ import (
 	"fmt"
 )
 
+// OpenApacheConfigurationFile opens a single apache configuration file and returns a string with the content
 func OpenApacheConfigurationFile(confPath string) (res string) {
 	currentBuf, err := ioutil.ReadFile(confPath)
 	if err != nil {
@@ -18,6 +20,10 @@ func OpenApacheConfigurationFile(confPath string) (res string) {
 	return
 }
 
+
+// OpenAllApacheConfigurationFiles opens an apache configuration file (and all the included ones) and returns their content as a map of strings:
+//    - Key: Path to the Apache configuration file
+//    - Value: String with the file content
 func OpenAllApacheConfigurationFiles(confPath, apacheRoot string) (resBuffers map[string]string) {
 	remainingConfFiles := []string{confPath}
 	resBuffers = make(map[string]string);
